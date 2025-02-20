@@ -1,0 +1,6 @@
+update_data:
+  name: "Update GridX Daten"
+  description: "Manuelles Abrufen der aktuellen PV-Daten von GridX"
+  target:
+    entity:
+      domain: sensorroot@iobroker:/home/markus/homeassistant/config/custom_components/viessmann_pv
