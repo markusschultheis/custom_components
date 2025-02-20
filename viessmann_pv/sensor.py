@@ -26,6 +26,7 @@ class GridXSensor(Entity):
         self._gateway_id = None
         self._last_update = 0
         self.client = InfluxDBClient(host=INFLUX_HOST, port=INFLUX_PORT, database=INFLUX_DATABASE)
+        self.entity_id = f"sensor.{name.lower().replace(' ', '_')}"  
 
     @property
     def name(self):
@@ -147,11 +148,13 @@ async def async_setup_entry(hass: HomeAssistantType, entry: ConfigEntry):
     """Set up the integration in Home Assistant."""
     sensor = GridXSensor(hass, "GridX PV Sensor", entry.data["username"], entry.data["password"])
     hass.data.setdefault(DOMAIN, {})["sensor"] = sensor
+    hass.states.async_set(sensor.entity_id, sensor.state)  # Initiale Entity-Registrierung
 
     async def handle_update(call):
         """Handler for manual data update."""
         _LOGGER.info("Manually triggered GridX data fetch")
         sensor.update()
+        hass.states.async_set(sensor.entity_id, sensor.state)  # Aktualisierte Entity-Werte
 
     hass.services.async_register(DOMAIN, "update_data", handle_update)
 
