@@ -1,7 +1,7 @@
 {
     "domain": "viessmann_pv",
     "name": "Viessmann PV-Anlage",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "documentation": "https://github.com/markusschultheis/ha_custom_components/viessmann_pv",
     "dependencies": [],
     "codeowners": ["markusschultheis"],
