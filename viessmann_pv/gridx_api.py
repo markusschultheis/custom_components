@@ -12,6 +12,7 @@ class GridXAPI:
         self.client_id = client_id
         self.realm = realm
         self.audience = audience
+        self.expires_at = 0
         self.token = None
         self.gateway_id = None
 
@@ -31,12 +32,28 @@ class GridXAPI:
                 response.raise_for_status()
                 data = await response.json()
                 self.token = data.get("id_token")
+                expires_in = data.get("expires_in", 3600)
+                self.expires_at = time.time() + expires_in
+                
+                _LOGGER.info("Authentifizierung erfolgreich. Token gueltig bis s%:", self.expires_at)
 
                 if response.status != 200:
                     _LOGGER.error(f"Authentifizuerung fehlgeschlagen: {response.status} - {data}")
                     raise Exception(f"Authentification failed: {response.status} - {data}")
 
+    def is_token_valid(self):
+        """Prüft, ob das gespeicherte Token noch gültig ist."""
+        return self.token is not None and time.time() < self.expires_at
+
+    async def get_valid_token(self):
+        """Stellt sicher, dass ein gültiges Token vorhanden ist."""
+        if not self.is_token_valid():
+            _LOGGER.info("Token ist abgelaufen oder nicht vorhanden. Authentifiziere erneut...")
+            await self.authenticate()
+        return self.token
+        
     async def get_gateway_id(self):
+        access_token = await self.get_valid_token() 
         headers = {"Authorization": f"Bearer {self.token}"}
         async with aiohttp.ClientSession() as session:
             async with session.get(GATEWAYS_URL, headers=headers) as response:
@@ -45,6 +62,7 @@ class GridXAPI:
                 self.gateway_id = data[0]["system"]["id"]
 
     async def get_live_data(self):
+        access_token = await self.get_valid_token() 
         headers = {"Authorization": f"Bearer {self.token}"}
         async with aiohttp.ClientSession() as session:
             async with session.get(LIVE_URL.format(self.gateway_id), headers=headers) as response:
