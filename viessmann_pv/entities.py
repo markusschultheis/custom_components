@@ -1,5 +1,4 @@
 rom homeassistant.components.sensor import SensorEntity
-import uuid
 
 class ViessmannSensor(SensorEntity):
     def __init__(self, api, name, unit, key, unique_id, device_class):
