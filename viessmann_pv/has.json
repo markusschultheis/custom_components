@@ -1,0 +1,6 @@
+{
+  "name": "Viessmann PV Monitoring",
+  "persistent_directory": "viessmann_pv",
+  "homeassistant": "2025.2.3",
+  "country": ["DE"]
+}
