@@ -31,5 +31,16 @@ class ViessmannSensor(SensorEntity):
         return self._device_class
 
     async def async_update(self):
+        """Daten nur aktualisieren, nicht neu anlegen."""
         data = await self.api.get_live_data()
-        self._state = data.get(self._key)
+        self._state = self.extract_value(data)
+
+    def extract_value(self, data):
+        """Extrahiert den gewünschten Wert aus der API-Antwort."""
+        keys = self._key.split(".")
+        value = data
+        for key in keys:
+            value = value.get(key, None)
+            if value is None:
+                return None
+        return value
