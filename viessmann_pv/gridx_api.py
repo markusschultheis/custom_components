@@ -35,7 +35,7 @@ class GridXAPI:
                 self.token = data.get("id_token")
                 expires_in = data.get("expires_in", 3600)
                 self.expires_at = time.time() + expires_in
-                
+
                 _LOGGER.info("Authentifizierung erfolgreich. Token gueltig bis s%:", self.expires_at)
 
                 if response.status != 200:
@@ -52,21 +52,23 @@ class GridXAPI:
             _LOGGER.info("Token ist abgelaufen oder nicht vorhanden. Authentifiziere erneut...")
             await self.authenticate()
         return self.token
-        
+
     async def get_gateway_id(self):
-        access_token = await self.get_valid_token() 
+        access_token = await self.get_valid_token()
         headers = {"Authorization": f"Bearer {self.token}"}
         async with aiohttp.ClientSession() as session:
             async with session.get(GATEWAYS_URL, headers=headers) as response:
                 response.raise_for_status()
                 data = await response.json()
+                #_LOGGER.info(f"{data}")
                 self.gateway_id = data[0]["system"]["id"]
 
     async def get_live_data(self):
-        access_token = await self.get_valid_token() 
+        access_token = await self.get_valid_token()
         headers = {"Authorization": f"Bearer {self.token}"}
         async with aiohttp.ClientSession() as session:
             async with session.get(LIVE_URL.format(self.gateway_id), headers=headers) as response:
                 response.raise_for_status()
                 data = await response.json()
+                #_LOGGER.info(f"{data}")
                 return data
