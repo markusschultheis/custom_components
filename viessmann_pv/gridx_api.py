@@ -17,7 +17,6 @@ class GridXAPI:
         self.refresh_token = None
         self.gateway_id = None
         self.id_token = None
-        _LOGGER.info(f"{GridXAPI}")
 
     async def authenticate(self):
         """Fordert ein neues Token mit Benutzername und Passwort an."""
