@@ -9,6 +9,7 @@ class ViessmannSensor(SensorEntity):
         self._unit = unit
         self._unique_id = unique_id
         self._device_class = device_class
+        self._state_class = "total"
 
     @property
     def name(self):
