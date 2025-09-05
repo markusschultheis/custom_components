@@ -1,7 +1,7 @@
 {
     "domain": "gridx",
     "name": "Viessmann PV-Anlage",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "documentation": "https://github.com/markusschultheis/ha_custom_components/viessmann_pv",
     "dependencies": [],
     "codeowners": ["markusschultheis"],
