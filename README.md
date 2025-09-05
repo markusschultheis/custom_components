@@ -7,10 +7,17 @@
 ### [GridboxConnector add-on](./viessmann_pv)
 
 # Viessmann GridX Integration
-Diese Integration ist für die Darstellung von PV-Anlagendaten gedacht. 
+Diese Integration ist für die Darstellung von PV-Anlagendaten gedacht. Diese koennen ohne zusaetzliche Kosten direkt abgerufen werden und weitere Automatisierung in Home Assistant umgesetzt werden. 
+
+Anwendungsfall:
 Die PV-Anlage ist mittels Gridbox mit dem Internet verbunden und sendet die Daten an GridX, welches der zentrale Datensammler fuer das Unternehmen Viessmann ist. Wir benutzen also die API von GridX, um unsere eigenen Anlagendaten abzurufen und in Home Assistant bereitzustellen. Von dort aus koennen die Daten dann zum beispiel im Energy Monitoring aufgenommen und dargestellt werden. 
+
 Ein weiterer Anwendungsfall ist beispielsweise die Daten in Grafana zur weiteren Auswertung bereitzustellen.
 
+Zum Beispiel kann der PV-Ueberschuss zur Steuerung einer Luftwaermepumpe genutzt werden um die ueberschuessige Energie im eigenen Haushalt optimal nutzen zu koennen.
+
+Daten die mittels API Call abgerufen werden:
+-----------------------------------------------------------------------------------------
 {
  'batteries': 
     [
@@ -53,7 +60,7 @@ Ein weiterer Anwendungsfall ist beispielsweise die Daten in Grafana zur weiteren
     'l1CurtailmentPower': 0, 
     'l2CurtailmentPower': 0, 
     'l3CurtailmentPower': 0, 
-    'measuredAt': '2025-02-22T20:25:21Z', 
+    'measuredAt': 'XXXX-XX-XXTXX:XX:XXZ', 
     'photovoltaic': 0, 
     'production': 0, 
     'selfConsumption': 0, 
