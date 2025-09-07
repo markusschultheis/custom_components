@@ -2,7 +2,7 @@
     "domain": "gridx",
     "name": "Viessmann PV-Anlagendaten - GridX",
     "version": "1.0.2",
-    "documentation": "https://github.com/markusschultheis/custom_components/gridx/",
+    "documentation": "https://github.com/markusschultheis/custom_components/",
     "dependencies": [],
     "codeowners": ["markusschultheis"],
     "requirements": ["requests"],
