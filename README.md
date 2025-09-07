@@ -79,3 +79,7 @@ Daten die mittels API Call abgerufen werden:
     'selfSupply': 0, 
     'totalConsumption': 0
 }  
+
+
+<img width="2258" height="1146" alt="image" src="https://github.com/user-attachments/assets/007a8005-7844-4d54-9f2f-74a7f563475e" />
+
