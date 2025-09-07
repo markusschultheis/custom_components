@@ -80,6 +80,8 @@ Daten die mittels API Call abgerufen werden:
     'totalConsumption': 0
 }  
 
+<img width="1038" height="562" alt="image" src="https://github.com/user-attachments/assets/80a8c8c2-d232-4ee7-bfa9-1fb86f908f94" />
+
 
 <img width="2258" height="1146" alt="image" src="https://github.com/user-attachments/assets/007a8005-7844-4d54-9f2f-74a7f563475e" />
 
