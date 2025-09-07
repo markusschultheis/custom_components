@@ -1,6 +1,6 @@
 {
     "domain": "gridx",
-    "name": "Viessmann PV-Anlage",
+    "name": "Viessmann PV-Anlagendaten - GridX",
     "version": "1.0.2",
     "documentation": "https://github.com/markusschultheis/custom_components/gridx/",
     "dependencies": [],
