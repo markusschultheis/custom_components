@@ -4,17 +4,28 @@
 [![Open your Home Assistant instance and show the add add-on repository dialog with a specific repository URL pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Funl0ck%2Fhomeassistant-addon-viessmann-gridbox)
 
 ## Add-ons
-### [GridboxConnector add-on](./gridx)
+### [Viessmann PV-Anlage](./gridx)
+# Setup
+Im Haushalt ist ein Viessmann Wechselrichter, sowie eine Luftwaermepumpe installiert. Diese Geraete sind mit einer GridX-Box verbunden. 
 
-# Viessmann GridX Integration
-Diese Integration ist für die Darstellung von PV-Anlagendaten gedacht. Diese koennen ohne zusaetzliche Kosten direkt abgerufen werden und weitere Automatisierung in Home Assistant umgesetzt werden. 
+# Viessmann GridX Integration: Was macht die Integration?
+Diese Integration ruft die PV-Anlagendaten ueber die GridX-API ab. Die Anlagedaten werden dann in Home Assistant zur weiteren Ver-/Bearbeitung zur Verfuegung gestellt. 
 
-Anwendungsfall:
-Die PV-Anlage ist mittels Gridbox mit dem Internet verbunden und sendet die Daten an GridX, welches der zentrale Datensammler fuer das Unternehmen Viessmann ist. Wir benutzen also die API von GridX, um unsere eigenen Anlagendaten abzurufen und in Home Assistant bereitzustellen. Von dort aus koennen die Daten dann zum beispiel im Energy Monitoring aufgenommen und dargestellt werden. 
+# Anwendungsfall:
+# a) Bei einer Luft-Wärmepumpe kann PV-Überschuss genutzt werden, um die Warmwasserbereitung zu unterstützen, indem überschüssiger Solarstrom direkt für den Betrieb der Wärmepumpe eingesetzt wird. 
 
-Ein weiterer Anwendungsfall ist beispielsweise die Daten in Grafana zur weiteren Auswertung bereitzustellen.
+1. PV-Überschuss erkennen:
+   Sensoren oder Smart-Home-Systeme messen die aktuelle PV-Leistung und den Eigenverbrauch. Wenn die Einspeisung ins Netz negativ wird (also Überschuss vorhanden ist), wird dies
+   erkannt.
+2. Warmwasser-Bedarf prüfen:
+   Das System überprüft, ob Warmwasser benötigt wird, z. B. über den Temperatursensor im Speicher oder über geplante Boost-Zeiten.
+3. Boost aktivieren:
+   Liegt Überschuss vor, schaltet das System die Wärmepumpe gezielt für die Warmwasserbereitung ein („Warmwasser-Boost“), auch wenn sonst vielleicht keine Heizung oder
+   Warmwasserbereitung nötig wäre.
+4. Strom sparen / Einspeisung reduzieren:
+   Dadurch wird überschüssiger PV-Strom genutzt. Statt ihn ins Netz einzuspeisen wird der Eigenverbrauch gesteigert.
 
-Zum Beispiel kann der PV-Ueberschuss zur Steuerung einer Luftwaermepumpe genutzt werden um die ueberschuessige Energie im eigenen Haushalt optimal nutzen zu koennen.
+# b) Ein weiterer Anwendungsfall: Datenbereitstellung in Grafana zur weiteren Auswertung.
 
 Daten die mittels API Call abgerufen werden:
 -----------------------------------------------------------------------------------------
