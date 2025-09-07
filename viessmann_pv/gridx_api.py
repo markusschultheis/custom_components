@@ -105,10 +105,17 @@ class GridXAPI:
                 data = await response.json()
                 self.gateway_id = data[0]["system"]["id"]
 
-    async def get_live_data(self):
-        id_token = await self.get_valid_token()
-        headers = {"Authorization": f"Bearer {self.hass.data[DOMAIN][DATA_ID_TOKEN]}"}
-        async with aiohttp.ClientSession() as session:
-            async with session.get(LIVE_URL.format(self.gateway_id), headers=headers) as response:
-                response.raise_for_status()
-                return await response.json()
+   async def get_live_data(self):
+        if self.hass.data[DOMAIN][DATA_EXPIRES_AT] < time.time():
+            await self.authenticate()
+            headers = {"Authorization": f"Bearer {self.hass.data[DOMAIN][DATA_ID_TOKEN]}"}
+            async with aiohttp.ClientSession() as session:
+                async with session.get(LIVE_URL.format(self.gateway_id), headers=headers) as response:
+                    response.raise_for_status()
+                    return await response.json()
+        else:
+            headers = {"Authorization": f"Bearer {self.hass.data[DOMAIN][DATA_ID_TOKEN]}"}
+            async with aiohttp.ClientSession() as session:
+                async with session.get(LIVE_URL.format(self.gateway_id), headers=headers) as response:
+                    response.raise_for_status()
+                    return await response.json()
