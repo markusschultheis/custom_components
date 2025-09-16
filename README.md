@@ -11,74 +11,39 @@ Im Haushalt ist ein Viessmann Wechselrichter, sowie eine Luftwaermepumpe install
 # Viessmann GridX Integration: Was macht die Integration?
 Diese Integration ruft die PV-Anlagendaten ueber die GridX-API ab. Die Anlagedaten werden dann in Home Assistant zur weiteren Ver-/Bearbeitung zur Verfuegung gestellt. 
 
-# Anwendungsfall:
-# a) Bei einer Luft-Wärmepumpe kann PV-Überschuss genutzt werden, um die Warmwasserbereitung zu unterstützen, indem überschüssiger Solarstrom direkt für den Betrieb der Wärmepumpe eingesetzt wird. 
-
-1. PV-Überschuss erkennen:
-   Sensoren oder Smart-Home-Systeme messen die aktuelle PV-Leistung und den Eigenverbrauch. Wenn die Einspeisung ins Netz negativ wird (also Überschuss vorhanden ist), wird dies
-   erkannt.
-2. Warmwasser-Bedarf prüfen:
-   Das System überprüft, ob Warmwasser benötigt wird, z. B. über den Temperatursensor im Speicher oder über geplante Boost-Zeiten.
-3. Boost aktivieren:
-   Liegt Überschuss vor, schaltet das System die Wärmepumpe gezielt für die Warmwasserbereitung ein („Warmwasser-Boost“), auch wenn sonst vielleicht keine Heizung oder
-   Warmwasserbereitung nötig wäre.
-4. Strom sparen / Einspeisung reduzieren:
-   Dadurch wird überschüssiger PV-Strom genutzt. Statt ihn ins Netz einzuspeisen wird der Eigenverbrauch gesteigert.
-
-# b) Ein weiterer Anwendungsfall: Datenbereitstellung in Grafana zur weiteren Auswertung.
-
-Daten die mittels API Call abgerufen werden:
------------------------------------------------------------------------------------------
-{
- 'batteries': 
-    [
-       {
-       'applianceID': 'xxxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
-       'capacity': x, 
-       'nominalCapacity': x,
-       'power': x, 
-       'remainingCharge': x, 
-       'stateOfCharge': x
-       }
-    ], 
- 'battery': 
-     {
-     'capacity': 0, 
-     'nominalCapacity': 0,
-     'power': 0, 
-     'remainingCharge': 0, 
-     'stateOfCharge': 0
-     }, 
-     'consumption': x, 
-     'directConsumption': 0,
-    'directConsumptionEV': 0, 
-    'directConsumptionHeatPump': 0, 
-    'directConsumptionHeater': 0, 
-    'directConsumptionHousehold': 0, 
-    'grid': 0,
-    'gridMeterReadingNegative': 0, 
-    'gridMeterReadingPositive': 0, 
-    'heatPump': 0, 
-    'heatPumps': 
-        [
-         {
-          'applianceID': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxx', 
-          'power': 0, 
-          'sgReadyState': 
-          'UNKNOWN'
-         }
-        ],
-    'l1CurtailmentPower': 0, 
-    'l2CurtailmentPower': 0, 
-    'l3CurtailmentPower': 0, 
-    'measuredAt': 'XXXX-XX-XXTXX:XX:XXZ', 
-    'photovoltaic': 0, 
-    'production': 0, 
-    'selfConsumption': 0, 
-    'selfSufficiencyRate': 0,
-    'selfSupply': 0, 
-    'totalConsumption': 0
-}  
+## Energiewende im Eigenheim
+### Photovoltaik und Wärmepumpen als Dream-Team
+Die Energiewende findet längst nicht mehr nur in der Politik statt, sondern in Millionen von
+Haushalten. Photovoltaikanlagen liefern sauberen Strom, Luftwärmepumpen sorgen effizient für
+Wärme. Doch die entscheidende Frage lautet: Wie kann der Solarstrom im eigenen Haus
+optimal genutzt werden, anstatt ihn ins Netz einzuspeisen?
+Proprietäre Systeme: GridBox vs. Vaillant-Portal
+Viessmann bietet mit seiner GridBox ein Energiemanagementsystem an, das Stromflüsse im
+Haus überwacht und Viessmann-Geräte steuert. Doch die Einbindung fremder Systeme bleibt
+eingeschränkt. Ähnlich verhält es sich bei Vaillant: Das Portal myVaillant Energy Management
+erlaubt eine Prognose-basierte Steuerung, jedoch nur für hauseigene Wärmepumpen. Besitzer
+beider Systeme können Daten zwar koppeln, aber die Wärmepumpe nicht direkt mit
+PV-Überschuss betreiben.
+# Open Source als Gamechanger
+Hier kommt Open Source ins Spiel: Plattformen wie Home Assistant verknüpfen Geräte
+herstellerübergreifend. Mit dem Kommunikationsstandard EEBUS können PV-Anlagen,
+Wärmepumpen, Batteriespeicher und Wallboxen miteinander kommunizieren. So lässt sich der
+Eigenverbrauch von Solarstrom erhöhen und der Überschuss gezielt nutzen – ohne teure
+proprietäre Systeme.
+# Die fehlende Interoperabilität bremst
+Trotz EU-weitem Standardisierungsvorhaben durch EEBUS setzen viele Hersteller auf
+geschlossene Systeme. Das zwingt Verbraucher in Abhängigkeiten und reduziert die Effizienz
+erneuerbarer Energien. Die Technik ist vorhanden – doch sie wird durch Fragmentierung
+künstlich eingeschränkt.
+# Energiewende von unten
+Hausbesitzer sind nicht machtlos: Mit Open-Source-Lösungen und günstiger Hardware lassen
+sich smarte Steuerungen aufbauen, die den Eigenverbrauch erhöhen. Projekte wie Home
+Assistant machen es möglich, den PV-Überschuss direkt zur Warmwasserbereitung
+einzusetzen. Das reduziert Kosten und trägt aktiv zur Energiewende bei.
+# Fazit
+Die Zukunft liegt in offenen Schnittstellen und gemeinschaftlich entwickelten Lösungen. Wer
+heute auf Open Source setzt, macht sich unabhängig von teuren Herstellerportalen und nutzt
+seine Energie dort, wo sie am meisten bringt: im eigenen Zuhause.
 
 ## Beispiel der Darstellung in Home Assistant
 <img width="1038" height="562" alt="image" src="https://github.com/user-attachments/assets/80a8c8c2-d232-4ee7-bfa9-1fb86f908f94" />
