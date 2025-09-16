@@ -29,8 +29,8 @@ class GridXAPI:
         self.refresh_token = None
         self.gateway_id = None
         self.id_token = None
-        _LOGGER.info(f"{GridXAPI}")
-
+        self.expires_in = 0
+                
     async def authenticate(self):
         """Fordert ein neues Token mit Benutzername und Passwort an."""
         payload = {
@@ -42,23 +42,18 @@ class GridXAPI:
             "scope": "email openid offline_access",
             "realm": self.realm
         }
-        _LOGGER.info(f"{payload}")
 
         async with aiohttp.ClientSession() as session:
             async with session.post(AUTH_URL, json=payload) as response:
                 response.raise_for_status()
                 data = await response.json()
-                _LOGGER.info(f"{data}")
-                self.hass.data[DOMAIN][DATA_ACCESS_TOKEN] = data.get("access_token")
                 self.hass.data[DOMAIN][DATA_ID_TOKEN] = data.get("id_token")
-                self.hass.data[DOMAIN][DATA_REFRESH_TOKEN] = data.get("refresh_token")  # Speichert das Refresh-Token
-                self.hass.data[DOMAIN][DATA_EXPIRES_AT] = time.time() + data.get("expires_in", 0)
-
-                _LOGGER.info(f"Neues Access Token erhalten")
+                self.id_token = data.get("id_token")
+                self.hass.data[DOMAIN][DATA_EXPIRES_AT] = data.get("expires_in") + time.time() - 45000
+                self.expires_in = data.get("expires_in") + time.time()
 
     async def get_gateway_id(self):
-        id_token = await self.get_valid_token()
-        headers = {"Authorization": f"Bearer {self.hass.data[DOMAIN][DATA_ID_TOKEN]}"}
+        headers = {"Authorization": f"Bearer {self.id_token}"}
         async with aiohttp.ClientSession() as session:
             async with session.get(GATEWAYS_URL, headers=headers) as response:
                 response.raise_for_status()
@@ -67,18 +62,15 @@ class GridXAPI:
 
     async def get_live_data(self):
         now = time.time()
-        expires_at = self.hass.data[DOMAIN][DATA_EXPIRES_AT]
-        _LOGGER.info(f"Token gültig bis: {expires_at}, jetzt: {now}")
 
-        if now >= expires_at:
+        if now > self.hass.data[DOMAIN][DATA_EXPIRES_AT]:
             _LOGGER.info("Token ist abgelaufen → authenticate() wird ausgeführt")
             await self.authenticate()
 
         else:
-            _LOGGER.info("Token ist noch gültig → keine neue Authentifizierung")
-
-        headers = {"Authorization": f"Bearer {self.hass.data[DOMAIN][DATA_ID_TOKEN]}"}
-        async with aiohttp.ClientSession() as session:
-            async with session.get(LIVE_URL.format(self.gateway_id), headers=headers) as response:
-                response.raise_for_status()
-                return await response.json()
+            """Token ist noch gültig → keine neue Authentifizierung"""
+            headers = {"Authorization": f"Bearer {self.id_token}"}
+            async with aiohttp.ClientSession() as session:
+                async with session.get(LIVE_URL.format(self.gateway_id), headers=headers) as response:
+                    response.raise_for_status()
+                    return await response.json()
