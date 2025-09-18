@@ -49,7 +49,7 @@ class GridXAPI:
                 data = await response.json()
                 self.hass.data[DOMAIN][DATA_ID_TOKEN] = data.get("id_token")
                 self.id_token = data.get("id_token")
-                self.hass.data[DOMAIN][DATA_EXPIRES_AT] = data.get("expires_in") + time.time() - 45000
+                self.hass.data[DOMAIN][DATA_EXPIRES_AT] = data.get("expires_in") + time.time() - 52200
                 self.expires_in = data.get("expires_in") + time.time()
 
     async def get_gateway_id(self):
