@@ -16,7 +16,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         schema = vol.Schema({
             vol.Required("username"): str,
             vol.Required("password"): str,
-            vol.Required(CONF_CLIENT_ID, default="oZpr934Ikn8OZOHTJEcrgXkjio0I0Q7b"): str,
+            vol.Required(CONF_CLIENT_ID, default="mG0Phmo7DmnvAqO7p6B0WOYBODppY3cc"): str,
             vol.Required(CONF_REALM, default="eon-home-authentication-db"): str,
             vol.Required(CONF_AUDIENCE, default="my.gridx"): str,
         })
