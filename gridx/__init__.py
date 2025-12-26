@@ -8,13 +8,12 @@ PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up GridX integration from a config entry."""
-
-    # Initialisiere den Speicher
+    # Initialize data storage
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN].setdefault(DATA_EXPIRES_AT, 0)
     hass.data[DOMAIN].setdefault(DATA_ID_TOKEN, None)
 
-    # Sensor-Setup weiterleiten
+    # Forward sensor setup
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
