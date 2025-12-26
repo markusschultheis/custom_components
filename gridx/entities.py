@@ -44,7 +44,7 @@ class GridXSensor(SensorEntity):
         return DeviceInfo(
             identifiers={(DOMAIN, self.api.gateway_id)},
             name="GridX System",
-            manufacturer="Viessmann",
+            manufacturer="GridX",
             model="GridX Gateway",
         )
 

@@ -7,11 +7,8 @@ from .const import (
     LIVE_URL,
     GRANT_TYPE,
     DOMAIN,
-    DATA_ACCESS_TOKEN,
     DATA_ID_TOKEN,
-    DATA_REFRESH_TOKEN,
     DATA_EXPIRES_AT,
-    DATA_GATEWAY_ID,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -24,12 +21,8 @@ class GridXAPI:
         self.client_id = client_id
         self.realm = realm
         self.audience = audience
-        self.token_expires_at = 0
-        self.access_token = None
-        self.refresh_token = None
         self.gateway_id = None
         self.id_token = None
-        self.expires_in = 0
                 
     async def authenticate(self):
         """Fordert ein neues Token mit Benutzername und Passwort an."""
@@ -47,10 +40,9 @@ class GridXAPI:
             async with session.post(AUTH_URL, json=payload) as response:
                 response.raise_for_status()
                 data = await response.json()
-                self.hass.data[DOMAIN][DATA_ID_TOKEN] = data.get("id_token")
                 self.id_token = data.get("id_token")
+                self.hass.data[DOMAIN][DATA_ID_TOKEN] = self.id_token
                 self.hass.data[DOMAIN][DATA_EXPIRES_AT] = data.get("expires_in") + time.time() - 52200
-                self.expires_in = data.get("expires_in") + time.time()
 
     async def get_gateway_id(self):
         headers = {"Authorization": f"Bearer {self.id_token}"}
@@ -67,10 +59,8 @@ class GridXAPI:
             _LOGGER.info("Token ist abgelaufen → authenticate() wird ausgeführt")
             await self.authenticate()
 
-        else:
-            """Token ist noch gültig → keine neue Authentifizierung"""
-            headers = {"Authorization": f"Bearer {self.id_token}"}
-            async with aiohttp.ClientSession() as session:
-                async with session.get(LIVE_URL.format(self.gateway_id), headers=headers) as response:
-                    response.raise_for_status()
-                    return await response.json()
+        headers = {"Authorization": f"Bearer {self.id_token}"}
+        async with aiohttp.ClientSession() as session:
+            async with session.get(LIVE_URL.format(self.gateway_id), headers=headers) as response:
+                response.raise_for_status()
+                return await response.json()
