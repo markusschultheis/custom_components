@@ -1,79 +1,78 @@
+import logging
 from homeassistant.components.sensor import SensorEntity, SensorStateClass
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN
+from typing import Any, Optional
+
+_LOGGER = logging.getLogger(__name__)
 
 
-class GridXSensor(SensorEntity):
+class GridXSensor(CoordinatorEntity, SensorEntity):
     """Representation of a GridX sensor."""
 
-    def __init__(self, api, name, unit, key, unique_id, device_class):
+    def __init__(self, coordinator: Any, name: str, unit: Optional[str], key: str, unique_id: str, device_class: Optional[str]) -> None:
         """Initialize the sensor."""
-        self.api = api
+        super().__init__(coordinator)
         self._name = name
         self._key = key
-        self._state = None
-        self._unit = unit
         self._unique_id = unique_id
         self._device_class = device_class
-        self._state_class = SensorStateClass.TOTAL_INCREASING
+        # Use MEASUREMENT for instantaneous values (default for most sensors)
+        self._state_class = SensorStateClass.MEASUREMENT
+        self._attr_native_unit_of_measurement = unit
+        self._attr_name = name  # For entity registry support and user renaming
+        
+        # Set device info once with the gateway_id from coordinator
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, self.api.gateway_id)},
+            identifiers={(DOMAIN, coordinator.api.gateway_id)},
             name="GridX System",
             manufacturer="GridX",
             model="GridX Gateway",
         )
 
     @property
-    def name(self):
-        """Return the name of the sensor."""
-        return self._name
+    def native_value(self) -> Optional[float]:
+        """Return the current value from coordinator data."""
+        if self.coordinator.data is None:
+            return None
+        value = self.extract_value(self.coordinator.data)
+        # Multiply by 100 for rate entities to convert to percentage
+        if value is not None and "rate" in self._key.lower():
+            try:
+                value = value * 100
+            except (TypeError, ValueError):
+                _LOGGER.warning("Cannot multiply rate value %s by 100", value)
+                return None
+        return value
 
     @property
-    def state(self):
-        """Return the state of the sensor."""
-        return self._state
-
-    @property
-    def unit_of_measurement(self):
-        """Return the unit of measurement."""
-        return self._unit
-
-    @property
-    def unique_id(self):
+    def unique_id(self) -> str:
         """Return the unique ID of the sensor."""
         return self._unique_id
 
     @property
-    def device_class(self):
+    def device_class(self) -> Optional[str]:
         """Return the device class."""
         return self._device_class
 
     @property
-    def device_info(self) -> DeviceInfo:
-        """Return device information."""
-        return DeviceInfo(
-            identifiers={(DOMAIN, self.api.gateway_id)},
-            name="GridX System",
-            manufacturer="GridX",
-            model="GridX Gateway",
-        )
-
-    @property
     def available(self) -> bool:
         """Return if the sensor is available."""
-        return self.api.gateway_id is not None
+        return self.coordinator.last_update_success
 
-    async def async_update(self):
-        """Update sensor data."""
-        data = await self.api.get_live_data()
-        self._state = self.extract_value(data)
-
-    def extract_value(self, data):
+    def extract_value(self, data: Any) -> Any:
         """Extract the desired value from the API response."""
         keys = self._key.split(".")
         value = data
         for key in keys:
-            value = value.get(key, None)
-            if value is None:
+            if isinstance(value, dict):
+                value = value.get(key)
+            elif isinstance(value, list) and key.isdigit():
+                idx = int(key)
+                if 0 <= idx < len(value):
+                    value = value[idx]
+                else:
+                    return None
+            else:
                 return None
-        return value
