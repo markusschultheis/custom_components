@@ -2,8 +2,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 import logging
-from .gridx_api import GridXAPI
+from .const import DOMAIN
 from .entities import GridXSensor
+from .calculated_sensors import CALCULATED_SENSOR_CLASSES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -25,26 +26,21 @@ def flatten_dict(d, prefix=''):
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback):
     """Set up GridX sensors from a config entry."""
     try:
-        # Create GridX API client
-        api = GridXAPI(
-            hass,
-            entry.data["username"],
-            entry.data["password"],
-            entry.data["client_id"],
-            entry.data["realm"],
-            entry.data["audience"],
-        )
-
-        # Authenticate and retrieve gateway
-        await api.authenticate()
-        await api.get_gateway_id()
-
-        # Retrieve API data to create sensors dynamically
-        data = await api.get_live_data()
+        # Get coordinator from hass.data
+        coordinator = hass.data[DOMAIN]["coordinator"]
+        
+        # Use coordinator data (already fetched during initialization)
+        data = coordinator.data
+        if not data:
+            _LOGGER.warning("No data available from coordinator yet")
+            data = {}
 
         # Create sensors dynamically from API response
         sensors = []
         flattened = flatten_dict(data)
+        if not flattened:
+            _LOGGER.warning("No numeric values found in API response to create sensors")
+        _LOGGER.debug("Flattened keys from API: %s", [k for k, _ in flattened])
         for key, _ in flattened:
             # Generate name from key
             name = key.replace(".", " ").title()
@@ -56,18 +52,30 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             if "power" in key_lower:
                 unit = "W"
                 device_class = "power"
+            elif "rate" in key_lower:
+                unit = "%"  # Rates are percentages
+            elif any(word in key_lower for word in ["efficiency", "stateofcharge"]):
+                unit = "%"
             elif any(word in key_lower for word in ["charge", "capacity", "production", "consumption", "supply", "grid", "photovoltaic", "directconsumption"]):
                 unit = "Wh"
                 device_class = "energy"
-            elif "stateofcharge" in key_lower:
-                unit = "%"
-            elif "rate" in key_lower:
-                unit = ""  # No unit for rates
             
             # Generate unique ID
             unique_id = f"gridx_{key.replace('.', '_')}"
             
-            sensors.append(GridXSensor(api, name, unit, key, unique_id, device_class))
+            _LOGGER.debug("Creating sensor - key: %s, name: %s, unit: %s, device_class: %s", key, name, unit, device_class)
+            sensors.append(GridXSensor(coordinator, name, unit, key, unique_id, device_class))
+        
+        _LOGGER.info("Created %d regular sensors", len(sensors))
+        
+        # Add calculated sensors
+        for sensor_class in CALCULATED_SENSOR_CLASSES:
+            try:
+                sensors.append(sensor_class(coordinator))
+            except Exception as err:
+                _LOGGER.warning("Failed to create calculated sensor %s: %s", sensor_class.__name__, err)
+        
+        _LOGGER.info("Total sensors created: %d", len(sensors))
 
         async_add_entities(sensors, update_before_add=True)
     except Exception as err:
