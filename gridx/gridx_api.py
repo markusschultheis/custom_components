@@ -76,6 +76,18 @@ class GridXAPI:
         """Retrieve live data from the GridX API."""
         now = time.time()
 
+        # Ensure we have a token and gateway id
+        if self.id_token is None:
+            await self.authenticate()
+        if self.gateway_id is None:
+            await self.get_gateway_id()
+
+        # Validate token and gateway_id after retry
+        if self.id_token is None:
+            raise RuntimeError("Failed to obtain authentication token")
+        if self.gateway_id is None:
+            raise RuntimeError("Failed to obtain gateway ID")
+
         if now > self.hass.data[DOMAIN][DATA_EXPIRES_AT]:
             _LOGGER.info("Token expired, re-authenticating")
             await self.authenticate()
