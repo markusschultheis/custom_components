@@ -1,7 +1,6 @@
 {
-  "name": "Viessmann PV",
-  "domain": "gridx",
-  "country": "DE",
-  "homeassistant": "2025.12.4",
-  "iot_class": "cloud_polling"
+  "name": "GridX Home Assistant Integration",
+  "content_in_root": false,
+  "filename": "custom_components/gridx/manifest.json",
+  "domain": "gridx"
 }
