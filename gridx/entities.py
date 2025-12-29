@@ -26,9 +26,9 @@ class GridXSensor(CoordinatorEntity, SensorEntity):
         # Set device info once with the gateway_id from coordinator
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, coordinator.api.gateway_id)},
-            name="GridX System",
-            manufacturer="GridX",
-            model="GridX Gateway",
+            name="GridX API Connector",
+            manufacturer="Markus Schultheis (c) 2024-2025",
+            model="GridX Box",
         )
 
     @property
@@ -76,3 +76,4 @@ class GridXSensor(CoordinatorEntity, SensorEntity):
                     return None
             else:
                 return None
+        return value
