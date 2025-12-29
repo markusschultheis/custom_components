@@ -1,9 +1,12 @@
 """Calculated sensor entities for GridX integration."""
 import logging
 from typing import Any, Optional
-from homeassistant.components.sensor import SensorEntity, SensorStateClass, SensorDeviceClass
+from datetime import datetime, timedelta
+from homeassistant.components.sensor import SensorEntity, SensorStateClass, SensorDeviceClass, RestoreSensor
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.helpers.event import async_track_time_change
+from homeassistant.core import callback
 from .const import DOMAIN
 from .helpers import extract_nested_value, safe_divide
 
@@ -19,7 +22,7 @@ class GridXCalculatedSensor(CoordinatorEntity, SensorEntity):
         name: str,
         unique_id: str,
         unit: Optional[str],
-        device_class: Optional[str] = None,
+        device_class: Optional[SensorDeviceClass] = None,
         state_class: Optional[SensorStateClass] = None,
     ) -> None:
         """Initialize the calculated sensor."""
@@ -77,7 +80,8 @@ class BatteryEnergyStoredSensor(GridXCalculatedSensor):
             name="GridX Battery Energy Stored",
             unique_id="gridx_battery_energy_stored",
             unit="Wh",
-            device_class=SensorDeviceClass.ENERGY,
+            device_class=SensorDeviceClass.ENERGY_STORAGE,
+            state_class=SensorStateClass.MEASUREMENT,
         )
 
     @property
@@ -137,58 +141,229 @@ class GridExportRateSensor(GridXCalculatedSensor):
             return None
 
 
-class HouseholdConsumptionRateSensor(GridXCalculatedSensor):
-    """Sensor for household consumption as percentage of total consumption."""
+class PeriodEnergySensor(CoordinatorEntity, RestoreSensor):
+    """Base class for period-based energy tracking sensors."""
 
-    def __init__(self, coordinator: Any) -> None:
-        """Initialize the household consumption rate sensor."""
-        super().__init__(
-            coordinator=coordinator,
-            name="GridX Household Consumption Rate",
-            unique_id="gridx_household_consumption_rate",
-            unit="%",
+    def __init__(
+        self,
+        coordinator: Any,
+        name: str,
+        unique_id: str,
+        period: str,  # 'daily', 'weekly', 'monthly'
+        device_class: SensorDeviceClass,
+    ) -> None:
+        """Initialize the period energy sensor."""
+        super().__init__(coordinator)
+        self._attr_name = name
+        self._attr_unique_id = unique_id
+        self._attr_native_unit_of_measurement = "kWh"
+        self._attr_device_class = device_class
+        self._attr_state_class = SensorStateClass.TOTAL
+        self._period = period
+        self._last_value = 0.0
+        self._last_reset = datetime.now()
+        self._accumulated = 0.0
+        
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, coordinator.api.gateway_id)},
+            name="GridX System",
+            manufacturer="GridX",
+            model="GridX Gateway",
         )
+
+    async def async_added_to_hass(self) -> None:
+        """Restore last state."""
+        await super().async_added_to_hass()
+        if (last_state := await self.async_get_last_state()) is not None:
+            try:
+                self._accumulated = float(last_state.state)
+            except (ValueError, TypeError):
+                self._accumulated = 0.0
+            
+            if last_state.attributes.get("last_reset"):
+                try:
+                    self._last_reset = datetime.fromisoformat(last_state.attributes["last_reset"])
+                except (ValueError, TypeError):
+                    self._last_reset = datetime.now()
+        
+        # Schedule periodic reset
+        if self._period == "daily":
+            async_track_time_change(self.hass, self._handle_reset, hour=0, minute=0, second=0)
+        elif self._period == "weekly":
+            # Reset on Monday at midnight
+            async_track_time_change(self.hass, self._handle_reset_weekly, hour=0, minute=0, second=0)
+        elif self._period == "monthly":
+            # Reset on 1st of month at midnight
+            async_track_time_change(self.hass, self._handle_reset_monthly, hour=0, minute=0, second=0)
+
+    @callback
+    def _handle_reset(self, now: datetime) -> None:
+        """Reset daily counter."""
+        self._accumulated = 0.0
+        self._last_reset = now
+        self.async_write_ha_state()
+
+    @callback
+    def _handle_reset_weekly(self, now: datetime) -> None:
+        """Reset weekly counter on Monday."""
+        if now.weekday() == 0:  # Monday
+            self._accumulated = 0.0
+            self._last_reset = now
+            self.async_write_ha_state()
+
+    @callback
+    def _handle_reset_monthly(self, now: datetime) -> None:
+        """Reset monthly counter on 1st of month."""
+        if now.day == 1:
+            self._accumulated = 0.0
+            self._last_reset = now
+            self.async_write_ha_state()
 
     @property
     def native_value(self) -> Optional[float]:
-        """Calculate household consumption percentage."""
-        if self.coordinator.data is None:
-            return None
-        
-        household = extract_nested_value(self.coordinator.data, "directConsumptionHousehold")
-        total_consumption = extract_nested_value(self.coordinator.data, "totalConsumption")
-        
-        if household is None or total_consumption is None or total_consumption == 0:
-            return None
-        
-        return safe_divide(household, total_consumption, 0.0) * 100
-
-
-class SolarCoverageRateSensor(GridXCalculatedSensor):
-    """Sensor for how much of consumption is covered by solar (real-time)."""
-
-    def __init__(self, coordinator: Any) -> None:
-        """Initialize the solar coverage rate sensor."""
-        super().__init__(
-            coordinator=coordinator,
-            name="GridX Solar Coverage Rate",
-            unique_id="gridx_solar_coverage_rate",
-            unit="%",
-        )
+        """Return the accumulated energy."""
+        return round(self._accumulated, 3) if self._accumulated is not None else None
 
     @property
-    def native_value(self) -> Optional[float]:
-        """Calculate what percentage of consumption is covered by solar."""
+    def extra_state_attributes(self) -> dict:
+        """Return extra attributes."""
+        return {
+            "last_reset": self._last_reset.isoformat(),
+            "period": self._period,
+        }
+
+    @property
+    def available(self) -> bool:
+        """Return if sensor is available."""
+        return self.coordinator.last_update_success
+
+
+class BatteryChargeSensor(PeriodEnergySensor):
+    """Base class for battery charge sensors."""
+
+    def __init__(self, coordinator: Any, period: str) -> None:
+        """Initialize battery charge sensor."""
+        period_name = period.capitalize()
+        super().__init__(
+            coordinator=coordinator,
+            name=f"GridX Battery Charge {period_name}",
+            unique_id=f"gridx_battery_charge_{period}",
+            period=period,
+            device_class=SensorDeviceClass.ENERGY,
+        )
+        self._last_power = 0.0
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
         if self.coordinator.data is None:
-            return None
+            return
         
-        direct_consumption = extract_nested_value(self.coordinator.data, "directConsumption")
-        total_consumption = extract_nested_value(self.coordinator.data, "totalConsumption")
+        # Get current battery power (positive = charging, negative = discharging)
+        current_power = extract_nested_value(self.coordinator.data, "battery.power") or 0.0
         
-        if direct_consumption is None or total_consumption is None or total_consumption == 0:
-            return None
+        # Only accumulate positive power (charging)
+        if current_power > 0:
+            # Convert W to kWh: (power in W * update_interval in seconds) / 3600 / 1000
+            energy_kwh = (current_power * 60) / 3600000  # Assuming 1-minute updates
+            self._accumulated += energy_kwh
         
-        return safe_divide(direct_consumption, total_consumption, 0.0) * 100
+        self.async_write_ha_state()
+
+
+class BatteryDischargeSensor(PeriodEnergySensor):
+    """Base class for battery discharge sensors."""
+
+    def __init__(self, coordinator: Any, period: str) -> None:
+        """Initialize battery discharge sensor."""
+        period_name = period.capitalize()
+        super().__init__(
+            coordinator=coordinator,
+            name=f"GridX Battery Discharge {period_name}",
+            unique_id=f"gridx_battery_discharge_{period}",
+            period=period,
+            device_class=SensorDeviceClass.ENERGY,
+        )
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        if self.coordinator.data is None:
+            return
+        
+        # Get current battery power (positive = charging, negative = discharging)
+        current_power = extract_nested_value(self.coordinator.data, "battery.power") or 0.0
+        
+        # Only accumulate negative power (discharging), convert to positive
+        if current_power < 0:
+            energy_kwh = (abs(current_power) * 60) / 3600000  # Assuming 1-minute updates
+            self._accumulated += energy_kwh
+        
+        self.async_write_ha_state()
+
+
+class GridImportSensor(PeriodEnergySensor):
+    """Base class for grid import sensors."""
+
+    def __init__(self, coordinator: Any, period: str) -> None:
+        """Initialize grid import sensor."""
+        period_name = period.capitalize()
+        super().__init__(
+            coordinator=coordinator,
+            name=f"GridX Grid Import {period_name}",
+            unique_id=f"gridx_grid_import_{period}",
+            period=period,
+            device_class=SensorDeviceClass.ENERGY,
+        )
+        self._last_reading = None
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        if self.coordinator.data is None:
+            return
+        
+        # Get grid power (positive = import, negative = export)
+        grid_power = extract_nested_value(self.coordinator.data, "grid") or 0.0
+        
+        # Only accumulate positive power (importing from grid)
+        if grid_power > 0:
+            energy_kwh = (grid_power * 60) / 3600000  # Assuming 1-minute updates
+            self._accumulated += energy_kwh
+        
+        self.async_write_ha_state()
+
+
+class GridExportSensor(PeriodEnergySensor):
+    """Base class for grid export sensors."""
+
+    def __init__(self, coordinator: Any, period: str) -> None:
+        """Initialize grid export sensor."""
+        period_name = period.capitalize()
+        super().__init__(
+            coordinator=coordinator,
+            name=f"GridX Grid Export {period_name}",
+            unique_id=f"gridx_grid_export_{period}",
+            period=period,
+            device_class=SensorDeviceClass.ENERGY,
+        )
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        if self.coordinator.data is None:
+            return
+        
+        # Calculate export: production - self consumption
+        production = extract_nested_value(self.coordinator.data, "production") or 0.0
+        self_consumption = extract_nested_value(self.coordinator.data, "selfConsumption") or 0.0
+        grid_export = max(0, production - self_consumption)
+        
+        if grid_export > 0:
+            energy_kwh = (grid_export * 60) / 3600000  # Assuming 1-minute updates
+            self._accumulated += energy_kwh
+        
+        self.async_write_ha_state()
 
 
 # List of all calculated sensor classes
@@ -196,6 +371,19 @@ CALCULATED_SENSOR_CLASSES = [
     BatteryChargePowerSensor,
     BatteryEnergyStoredSensor,
     GridExportRateSensor,
-    HouseholdConsumptionRateSensor,
-    SolarCoverageRateSensor,
+    # Daily sensors
+    lambda coord: BatteryChargeSensor(coord, "daily"),
+    lambda coord: BatteryDischargeSensor(coord, "daily"),
+    lambda coord: GridImportSensor(coord, "daily"),
+    lambda coord: GridExportSensor(coord, "daily"),
+    # Weekly sensors
+    lambda coord: BatteryChargeSensor(coord, "weekly"),
+    lambda coord: BatteryDischargeSensor(coord, "weekly"),
+    lambda coord: GridImportSensor(coord, "weekly"),
+    lambda coord: GridExportSensor(coord, "weekly"),
+    # Monthly sensors
+    lambda coord: BatteryChargeSensor(coord, "monthly"),
+    lambda coord: BatteryDischargeSensor(coord, "monthly"),
+    lambda coord: GridImportSensor(coord, "monthly"),
+    lambda coord: GridExportSensor(coord, "monthly"),
 ]

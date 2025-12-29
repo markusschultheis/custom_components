@@ -1,5 +1,5 @@
 import logging
-from homeassistant.components.sensor import SensorEntity, SensorStateClass
+from homeassistant.components.sensor import SensorEntity, SensorStateClass, SensorDeviceClass
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN
@@ -11,15 +11,18 @@ _LOGGER = logging.getLogger(__name__)
 class GridXSensor(CoordinatorEntity, SensorEntity):
     """Representation of a GridX sensor."""
 
-    def __init__(self, coordinator: Any, name: str, unit: Optional[str], key: str, unique_id: str, device_class: Optional[str]) -> None:
+    def __init__(self, coordinator: Any, name: str, unit: Optional[str], key: str, unique_id: str, device_class: Optional[SensorDeviceClass]) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._name = name
         self._key = key
         self._unique_id = unique_id
         self._device_class = device_class
-        # Use MEASUREMENT for instantaneous values (default for most sensors)
-        self._state_class = SensorStateClass.MEASUREMENT
+        # Use TOTAL_INCREASING for energy sensors, MEASUREMENT for everything else
+        if device_class == SensorDeviceClass.ENERGY:
+            self._state_class = SensorStateClass.TOTAL_INCREASING
+        else:
+            self._state_class = SensorStateClass.MEASUREMENT
         self._attr_native_unit_of_measurement = unit
         self._attr_name = name  # For entity registry support and user renaming
         
@@ -37,13 +40,6 @@ class GridXSensor(CoordinatorEntity, SensorEntity):
         if self.coordinator.data is None:
             return None
         value = self.extract_value(self.coordinator.data)
-        # Multiply by 100 for rate entities to convert to percentage
-        if value is not None and "rate" in self._key.lower():
-            try:
-                value = value * 100
-            except (TypeError, ValueError):
-                _LOGGER.warning("Cannot multiply rate value %s by 100", value)
-                return None
         return value
 
     @property
@@ -52,7 +48,7 @@ class GridXSensor(CoordinatorEntity, SensorEntity):
         return self._unique_id
 
     @property
-    def device_class(self) -> Optional[str]:
+    def device_class(self) -> Optional[SensorDeviceClass]:
         """Return the device class."""
         return self._device_class
 
