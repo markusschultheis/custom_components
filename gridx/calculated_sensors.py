@@ -19,7 +19,7 @@ class GridXCalculatedSensor(CoordinatorEntity, SensorEntity):
         name: str,
         unique_id: str,
         unit: Optional[str],
-        device_class: Optional[SensorDeviceClass] = None,
+        device_class: Optional[str] = None,
         state_class: Optional[SensorStateClass] = None,
     ) -> None:
         """Initialize the calculated sensor."""
